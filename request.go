@@ -116,6 +116,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
+	println("new ws request")
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
 
