@@ -115,7 +115,6 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
-
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
@@ -141,7 +140,7 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 
 	var user User
 
-	db.Find($user, id)
+	db.Find(&user, id)
 
 	if user.Id == 0 {
 		println("no such user")
