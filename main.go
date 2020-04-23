@@ -58,7 +58,7 @@ func main() {
 		serveWs(w, r, userId)
 	})
 
-	err := http.ListenAndServe("116.85.40.216:8080", nil)
+	err := http.ListenAndServe("10.255.0.118:8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
