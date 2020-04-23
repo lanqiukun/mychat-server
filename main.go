@@ -4,7 +4,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -46,17 +45,7 @@ func main() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/userinfo", userinfo)
 	http.HandleFunc("/wstokenuserid", wstokenuserid)
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		id := r.URL.Query().Get("code")
-
-		userId, err := strconv.ParseUint(id, 10, 64)
-		if err != nil {
-			println("invalid id parsed")
-			return
-		}
-
-		serveWs(w, r, userId)
-	})
+	http.HandleFunc("/ws", establishwsconn)
 
 	err := http.ListenAndServe("10.255.0.118:8080", nil)
 	if err != nil {

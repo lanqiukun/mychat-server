@@ -114,3 +114,44 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	}
 	http.ServeFile(w, r, "home.html")
 }
+
+
+func establishwsconn(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	token := r.URL.Query().Get("token")
+
+	userId, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		println("invalid id parsed")
+		return
+	}
+
+	wsToken, err := strconv.ParseUint(token, 10, 64)
+	if err != nil {
+		println("invalid token parsed")
+		return
+	}
+
+	db, err := gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+	defer db.Close()
+	if err != nil {
+		println(err.Error())
+		return
+	}
+
+	var user User
+
+	db.Find($user, id)
+
+	if user.Id == 0 {
+		println("no such user")
+		return
+	}
+
+	if user.WsToken != wsToken {
+		println("invalid token")
+		return
+	}
+
+	serveWs(w, r, userId)
+}
