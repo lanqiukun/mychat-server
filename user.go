@@ -101,7 +101,7 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 
 	//用户提交了合法凭据,查找数据库
 	if clientResponse.Status == 0 {
-		rows, err := db.Table("relationships").Select("users.id, users.nickname").Where("id1 = (?)", userId).
+		rows, err := db.Table("relationships").Select("users.id, users.nickname, users.avatar").Where("id1 = (?)", userId).
 			Joins("left join users on relationships.id2 = users.id").Rows()
 		if err != nil {
 			println(err.Error())
