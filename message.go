@@ -26,9 +26,17 @@ type ClientNotification struct {
 }
 
 type ClientResponse struct {
+	//好友消息0
+	//好友请求1
+	//群消息2
+	//群请求3
+	//系统消息4
+	//连接状态消息5
 	ResponseType uint `json:"response_type"`
 	ClientNotification
 	ClientMessage
+
+	//正常0	失败1
 	Status uint8  `json:"status,omitempty"`
 	Reason string `json:"reason,omitempty"`
 }
