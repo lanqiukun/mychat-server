@@ -109,7 +109,7 @@ func writePump() {
 
 			//尝试向目标用户发送消息
 			cpl.Lock()
-			err = targetConnection.WriteMessage(websocket.TextMessage, msgJson)
+			err = targetConnection.WriteMessage(websocket.TextMessage, []byte(msgJson))
 			cpl.Unlock()
 			if err == nil {
 				sm.Received_at = time.Now().Unix()
@@ -162,6 +162,7 @@ func serveWs(w http.ResponseWriter, r *http.Request, userId uint64) {
 		var unread []ServerMessage
 
 		db.Where("receiver_id = ? AND received_at = 0", userId).Limit(100).Find(&unread)
+		println("new ws request7")
 
 		var cm ClientMessage
 		for _, sm := range unread {
@@ -178,5 +179,6 @@ func serveWs(w http.ResponseWriter, r *http.Request, userId uint64) {
 	} else {
 		println("already")
 	}
+	println("new ws request8")
 
 }
