@@ -13,9 +13,11 @@ type UserBasic struct {
 }
 
 type Contact struct {
-	UserBasic
-	Alias string `json:"alias"`
-	StrId string `json:"strid"`
+	Id       uint64 `json:"-"`
+	Nickname string `json:"nickname"`
+	Avatar   string `json:"avatar"`
+	Alias    string `json:"alias"`
+	StrId    string `json:"strid"`
 }
 
 type User struct {
