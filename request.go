@@ -15,13 +15,17 @@ type ClientRequest struct {
 	Code string `json"code"`
 }
 
+func cors(w *http.ResponseWriter, r *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Credentials", "true")
+	(*w).Header().Set("Access-Control-Allow-Headers", "DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, TRACE, CONNECT, OPTIONS")
+	(*w).Header().Set("Content-Type", "application/json")
+}
+
 func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
-	w.Header().Set("Access-Control-Allow-Headers", "DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, TRACE, CONNECT, OPTIONS")
-	w.Header().Set("Content-Type", "application/json")
+	cors(&w, r)
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(200)
@@ -96,15 +100,8 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		authorRelation.Alias = "Mychat Author"
 		authorRelation.CreatedAt = time.Now().Unix()
 
-		tx := db.Begin()
-		if err := db.Create(&user).Error; err != nil {
-			tx.Rollback()
-		}
-
-		if err := db.Create(&authorRelation).Error; err != nil {
-			tx.Rollback()
-		}
-		tx.Commit()
+		db.Create(&user)
+		db.Create(&authorRelation)
 	} else {
 		//用户已经在数据库中
 		db.Table("users").Where("id = (?)", user.Id).Update("ws_token", token)

@@ -51,6 +51,7 @@ func main() {
 
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/userinfo", userinfo)
+	http.HandleFunc("/getcontact", getcontact)
 	http.HandleFunc("/wstokenuserid", wstokenuserid)
 	http.HandleFunc("/ws", establishwsconn)
 

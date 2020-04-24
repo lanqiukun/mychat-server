@@ -32,6 +32,7 @@ type ClientResponse struct {
 	//群请求3
 	//系统消息4
 	//连接状态消息5
+	//好友列表请求6
 	ResponseType uint `json:"response_type"`
 	ClientNotification
 	ClientMessage
