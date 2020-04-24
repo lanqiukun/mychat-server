@@ -12,6 +12,11 @@ type UserBasic struct {
 	Avatar   string `json:"avatar"`
 }
 
+type Contact struct {
+	UserBasic
+	Alias
+}
+
 type User struct {
 	UserBasic
 	WsToken uint64 `json:"ws_token"`
@@ -101,16 +106,16 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 
 	//用户提交了合法凭据,查找数据库
 	if clientResponse.Status == 0 {
-		rows, err := db.Table("relationships").Select("users.id, users.nickname, users.avatar").Where("id1 = (?)", userId).
-			Joins("left join users on relationships.id2 = users.id").Rows()
+		rows, err := db.Table("relationships").Select("users.id, users.nickname, users.avatar, relationships.alias").
+			Where("id1 = (?)", userId).Joins("left join users on relationships.id2 = users.id").Rows()
 		if err != nil {
 			println(err.Error())
 			clientResponse.Status = 1
 			clientResponse.Reason = "发生数据库错误"
 			return
 		}
-		var contacts []UserBasic
-		var contact UserBasic
+		var contacts []Contact
+		var contact Contact
 		for rows.Next() {
 
 			err := db.ScanRows(rows, &contact)

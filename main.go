@@ -55,9 +55,9 @@ func main() {
 	http.HandleFunc("/wstokenuserid", wstokenuserid)
 	http.HandleFunc("/ws", establishwsconn)
 
-	err := http.ListenAndServe("10.255.0.118:8080", nil)
+	// err := http.ListenAndServe("10.255.0.118:8080", nil)
 
-	// err := http.ListenAndServe("192.168.31.253:8080", nil)
+	err := http.ListenAndServe("192.168.31.253:8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
