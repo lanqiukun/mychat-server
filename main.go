@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 var cp = make(map[uint64]*websocket.Conn)
@@ -15,6 +18,10 @@ var cpl sync.RWMutex
 
 var cmp = make(chan ClientMessage, 1000000)
 var cmpl sync.RWMutex
+
+func getdb() (*gorm.DB, error) {
+	return gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+}
 
 func detect() {
 	i := 0
@@ -47,7 +54,9 @@ func main() {
 	http.HandleFunc("/wstokenuserid", wstokenuserid)
 	http.HandleFunc("/ws", establishwsconn)
 
-	err := http.ListenAndServe("10.255.0.118:8080", nil)
+	// err := http.ListenAndServe("10.255.0.118:8080", nil)
+
+	err := http.ListenAndServe("192.168.31.253:8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

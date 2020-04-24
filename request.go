@@ -6,9 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
+	"time"
 )
 
 type ClientRequest struct {
@@ -25,10 +23,12 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(200)
+		println("preflight request")
 	}
 
 	if r.Method != "POST" {
 		w.WriteHeader(405)
+		println("no post request")
 		return
 	}
 
@@ -68,7 +68,7 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+	db, err := getdb()
 	if err != nil {
 		clientResponse.Status = 1
 		clientResponse.Reason = "发生数据库错误"
@@ -87,7 +87,22 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		user.WsToken = token
 		user.Avatar = ghui.AvatarUrl
 
-		db.Create(&user)
+		var authorRelation Relationship
+
+		authorRelation.Id1 = user.Id
+		authorRelation.Id2 = 98688141287751680
+		authorRelation.Alias = "Mychat Author"
+		authorRelation.CreatedAt = time.Now().Unix()
+
+		tx := db.Begin()
+		if err := db.Create(&user).Error; err != nil {
+			tx.Rollback()
+		}
+
+		if err := db.Create(&authorRelation).Error; err != nil {
+			tx.Rollback()
+		}
+		tx.Commit()
 	} else {
 		//用户已经在数据库中
 		db.Table("users").Where("id = (?)", user.Id).Update("ws_token", token)
@@ -116,7 +131,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
-	println("new ws request")
+	println("new ws request1")
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
 
@@ -126,18 +141,24 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	println("new ws request2")
+
 	wsToken, err := strconv.ParseUint(token, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
 		return
 	}
 
-	db, err := gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+	println("new ws request3")
+
+	db, err := getdb()
 	defer db.Close()
 	if err != nil {
 		println(err.Error())
 		return
 	}
+
+	println("new ws request4")
 
 	var user User
 
@@ -152,6 +173,8 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 		println("invalid token")
 		return
 	}
+
+	println("new ws request5")
 
 	serveWs(w, r, userId)
 }

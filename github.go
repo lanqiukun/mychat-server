@@ -84,7 +84,6 @@ func getGitHubUserInfo(ght GitHubToken) (GitHubUserInfo, error) {
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return GitHubUserInfo{}, fmt.Errorf("服务器创建GitHub请求时发生错误1")
-
 	}
 
 	request.Header.Add("Accept", "application/json")

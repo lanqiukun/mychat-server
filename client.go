@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 const (
@@ -97,7 +95,7 @@ func writePump() {
 		targetConnection, ok := cp[sm.Receiver_id]
 		cpl.RUnlock()
 
-		db, err := gorm.Open("mysql", "root:Edison939878#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+		db, err := getdb()
 		if err != nil {
 			println(err.Error())
 			return
@@ -138,6 +136,8 @@ func writePump() {
 
 func serveWs(w http.ResponseWriter, r *http.Request, userId uint64) {
 
+	println("new ws request6")
+
 	cpl.Lock()
 	_, ok := cp[userId]
 	cpl.Unlock()
@@ -152,7 +152,7 @@ func serveWs(w http.ResponseWriter, r *http.Request, userId uint64) {
 		cp[userId] = conn
 		cpl.Unlock()
 
-		db, err := gorm.Open("mysql", "root:123@(192.168.31.73:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+		db, err := getdb()
 		if err != nil {
 			println(err.Error())
 			return

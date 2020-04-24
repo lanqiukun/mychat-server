@@ -3,9 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
 type User struct {
@@ -19,7 +16,7 @@ func userinfo(w http.ResponseWriter, r *http.Request) {
 
 	id := r.URL.Query().Get("id")
 
-	db, err := gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+	db, err := getdb()
 	defer db.Close()
 
 	if err != nil {
