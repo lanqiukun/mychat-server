@@ -134,18 +134,15 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
 
-	var tmpResponse ClientResponse
-	tmpResponse.ResponseType = 5
+	var tempResponse ClientResponse
+	tempResponse.ResponseType = 5
+	tempResponse.Status = 0
 
-	tempconn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := upgrader.Upgrade(w, r, nil)
 
 	if err != nil {
 		println("create temp connection faild")
 	}
-
-	defer func() {
-		tempconn.Close()
-	}()
 
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
@@ -153,7 +150,8 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
-		tmpResponse.Reason = "用户id不合法，解析失败"
+		tempResponse.Status = 1
+		tempResponse.Reason = "用户id不合法，解析失败"
 	}
 
 	println("new ws request2")
@@ -161,18 +159,18 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 	wsToken, err := strconv.ParseUint(token, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
-		tmpResponse.Reason = "用户token不合法，解析失败"
+		tempResponse.Status = 1
+		tempResponse.Reason = "用户token不合法，解析失败"
 	}
 
 	println("new ws request3")
 
 	db, err := getdb()
-	defer db.Close()
 	if err != nil {
-
 		println(err.Error())
-		tmpResponse.Reason = "发生数据库错误"
+		return
 	}
+	defer db.Close()
 
 	println("new ws request4")
 
@@ -182,25 +180,65 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 
 	if user.Id == 0 {
 		println("no such user")
-		tmpResponse.Reason = "用户不存在"
+		tempResponse.Status = 1
+		tempResponse.Reason = "用户不存在"
 	}
 
 	if user.WsToken != wsToken {
 		println("invalid token")
-		tmpResponse.Reason = "用户token不正确"
+		tempResponse.Status = 1
+		tempResponse.Reason = "用户token不正确"
 	}
 
-	if tmpResponse.Reason != "" {
-		tmpResponse.Status = 1
+	tempResponseJson, err := json.Marshal(conn)
+
+	//不管用户提供的身份信息是否合法,都响应一下用户
+	if err := conn.WriteMessage(websocket.TextMessage, tempResponseJson); err != nil {
+		return
 	}
 
-	tempResponseJson, err := json.Marshal(tempconn)
-
-	if err := tempconn.WriteMessage(websocket.TextMessage, tempResponseJson); err != nil {
+	//如果发现已知错误,则关闭websocket连接
+	if tempResponse.Status == 1 {
+		conn.Close()
 		return
 	}
 
 	println("new ws request5")
 
-	serveWs(w, r, userId)
+	println("new ws request6")
+
+	cpl.Lock()
+	_, ok := cp[userId]
+	cpl.Unlock()
+
+	//用户刚上线，查找属于它的未读消息并将查找结果放入消息池
+	if !ok {
+
+		cpl.Lock()
+		cp[userId] = conn
+		cpl.Unlock()
+
+		var unread []ServerMessage
+
+		db.Where("receiver_id = ? AND received_at = 0", userId).Limit(100).Find(&unread)
+		println("new ws request7")
+
+		var cm ClientMessage
+		for _, sm := range unread {
+			cm.Message = sm.Message
+			cm.Sender_str_id = strconv.FormatUint(sm.Sender_id, 10)
+			cm.Receiver_str_id = strconv.FormatUint(sm.Receiver_id, 10)
+
+			cmpl.Lock()
+			cmp <- cm
+			cmpl.Unlock()
+		}
+		go readPump(userId, conn)
+
+	} else {
+		println("already")
+		return
+	}
+	println("new ws request8")
+
 }
