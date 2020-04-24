@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 type ClientRequest struct {
@@ -131,14 +133,27 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 }
 
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
-	println("new ws request1")
+
+	var tmpResponse ClientResponse
+	tmpResponse.ResponseType = 5
+
+	tempconn, err := upgrader.Upgrade(w, r, nil)
+
+	if err != nil {
+		println("create temp connection faild")
+	}
+
+	defer func() {
+		tempconn.Close()
+	}()
+
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
 
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		println("invalid id parsed")
-		return
+		println("invalid token parsed")
+		tmpResponse.Reason = "用户id不合法，解析失败"
 	}
 
 	println("new ws request2")
@@ -146,7 +161,7 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 	wsToken, err := strconv.ParseUint(token, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
-		return
+		tmpResponse.Reason = "用户token不合法，解析失败"
 	}
 
 	println("new ws request3")
@@ -154,8 +169,9 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 	db, err := getdb()
 	defer db.Close()
 	if err != nil {
+
 		println(err.Error())
-		return
+		tmpResponse.Reason = "发生数据库错误"
 	}
 
 	println("new ws request4")
@@ -166,11 +182,21 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 
 	if user.Id == 0 {
 		println("no such user")
-		return
+		tmpResponse.Reason = "用户不存在"
 	}
 
 	if user.WsToken != wsToken {
 		println("invalid token")
+		tmpResponse.Reason = "用户token不正确"
+	}
+
+	if tmpResponse.Reason != "" {
+		tmpResponse.Status = 1
+	}
+
+	tempResponseJson, err := json.Marshal(tempconn)
+
+	if err := tempconn.WriteMessage(websocket.TextMessage, tempResponseJson); err != nil {
 		return
 	}
 

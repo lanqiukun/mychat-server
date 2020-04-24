@@ -109,7 +109,7 @@ func writePump() {
 
 			//尝试向目标用户发送消息
 			cpl.Lock()
-			err = targetConnection.WriteMessage(websocket.TextMessage, []byte(msgJson))
+			err = targetConnection.WriteMessage(websocket.TextMessage, msgJson)
 			cpl.Unlock()
 			if err == nil {
 				sm.Received_at = time.Now().Unix()
