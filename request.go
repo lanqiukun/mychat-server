@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -129,17 +130,35 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "home.html")
 }
 
+//如果请求合法,则相应成功信息并返回websocket连接给调用者
+//如果失败则返回响应失败信息和error并关闭websocket连接
 func establishwsconn(w http.ResponseWriter, r *http.Request) {
+	authenticate(w, r)
+}
+
+func authenticate(w http.ResponseWriter, r *http.Request) error {
+
+	var fatalError error = nil
+
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		println(err.Error())
+		return err
+	}
 
 	var tempResponse ClientResponse
 	tempResponse.ResponseType = 5
 	tempResponse.Status = 0
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	defer func() {
+		if tempResponseJson, err := json.Marshal(tempResponse); err == nil {
+			conn.WriteMessage(websocket.TextMessage, tempResponseJson)
+		}
 
-	if err != nil {
-		println("create temp connection faild")
-	}
+		if fatalError != nil {
+			conn.Close()
+		}
+	}()
 
 	id := r.URL.Query().Get("id")
 	token := r.URL.Query().Get("token")
@@ -149,60 +168,50 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 		println("invalid token parsed")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户id不合法，解析失败"
-	}
 
-	println("new ws request2")
+		fatalError = fmt.Errorf(tempResponse.Reason)
+		return fatalError
+	}
 
 	wsToken, err := strconv.ParseUint(token, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户token不合法，解析失败"
-	}
 
-	println("new ws request3")
+		fatalError = fmt.Errorf(tempResponse.Reason)
+		return fatalError
+	}
 
 	db, err := getdb()
 	if err != nil {
 		println(err.Error())
-		return
+		fatalError = err
+		return fatalError
 	}
 	defer db.Close()
 
-	println("new ws request4")
-
 	var user User
 
-	db.Find(&user, id)
+	db.Find(&user, userId)
 
 	if user.Id == 0 {
 		println("no such user")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户不存在"
+
+		fatalError = fmt.Errorf(tempResponse.Reason)
+		return fatalError
 	}
 
 	if user.WsToken != wsToken {
 		println("invalid token")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户token不正确"
+
+		fatalError = fmt.Errorf(tempResponse.Reason)
+		return fatalError
 	}
-
-	tempResponseJson, err := json.Marshal(conn)
-
-	//不管用户提供的身份信息是否合法,都响应一下用户
-	if err := conn.WriteMessage(websocket.TextMessage, tempResponseJson); err != nil {
-		return
-	}
-
-	//如果发现已知错误,则关闭websocket连接
-	if tempResponse.Status == 1 {
-		conn.Close()
-		return
-	}
-
-	println("new ws request5")
-
-	println("new ws request6")
 
 	cpl.Lock()
 	_, ok := cp[userId]
@@ -218,24 +227,27 @@ func establishwsconn(w http.ResponseWriter, r *http.Request) {
 		var unread []ServerMessage
 
 		db.Where("receiver_id = ? AND received_at = 0", userId).Limit(100).Find(&unread)
-		println("new ws request7")
 
-		var cm ClientMessage
+		var clientMessage ClientMessage
 		for _, sm := range unread {
-			cm.Message = sm.Message
-			cm.Sender_str_id = strconv.FormatUint(sm.Sender_id, 10)
-			cm.Receiver_str_id = strconv.FormatUint(sm.Receiver_id, 10)
+			clientMessage.Message = sm.Message
+			clientMessage.Sender_str_id = strconv.FormatUint(sm.Sender_id, 10)
+			clientMessage.Receiver_str_id = strconv.FormatUint(sm.Receiver_id, 10)
 
 			cmpl.Lock()
-			cmp <- cm
+			cmp <- clientMessage
 			cmpl.Unlock()
 		}
 		go readPump(userId, conn)
 
 	} else {
-		println("already")
-		return
-	}
-	println("new ws request8")
+		println("user was already online")
+		tempResponse.Status = 1
+		tempResponse.Reason = "用户已经在线"
 
+		fatalError = fmt.Errorf(tempResponse.Reason)
+		return fatalError
+	}
+
+	return nil
 }
