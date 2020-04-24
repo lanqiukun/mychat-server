@@ -15,6 +15,7 @@ type UserBasic struct {
 type Contact struct {
 	UserBasic
 	Alias string `json:"alias"`
+	StrId string `json:"strid"`
 }
 
 type User struct {
@@ -122,6 +123,11 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				println(err.Error())
 			}
+
+			//id 转 str id
+			contact.StrId = strconv.FormatUint(contact.Id, 10)
+
+			contact.Id = 0
 
 			contacts = append(contacts, contact)
 		}
