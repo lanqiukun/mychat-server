@@ -14,7 +14,7 @@ type UserBasic struct {
 
 type Contact struct {
 	UserBasic
-	Alias
+	Alias string `json:"alias"`
 }
 
 type User struct {
