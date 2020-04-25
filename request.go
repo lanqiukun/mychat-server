@@ -94,15 +94,22 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		user.WsToken = token
 		user.Avatar = ghui.AvatarUrl
 
-		var authorRelation Relationship
+		var authorRelation1 Relationship
+		var authorRelation2 Relationship
 
-		authorRelation.Id1 = user.Id
-		authorRelation.Id2 = 98688141287751680
-		authorRelation.Alias = "Mychat Author"
-		authorRelation.CreatedAt = time.Now().Unix()
+		authorRelation1.Id1 = user.Id
+		authorRelation1.Id2 = 98688141287751680
+		authorRelation1.Alias = "Mychat Author"
+		authorRelation1.CreatedAt = time.Now().Unix()
+
+		authorRelation2.Id1 = 98688141287751680
+		authorRelation2.Id2 = user.Id
+		authorRelation2.Alias = ""
+		authorRelation2.CreatedAt = time.Now().Unix()
 
 		db.Create(&user)
-		db.Create(&authorRelation)
+		db.Create(&authorRelation1)
+		db.Create(&authorRelation2)
 	} else {
 		//用户已经在数据库中
 		db.Table("users").Where("id = (?)", user.Id).Update("ws_token", token)
