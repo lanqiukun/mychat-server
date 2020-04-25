@@ -12,6 +12,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+const authorId = 63495249
+
 type ClientRequest struct {
 	Code string `json"code"`
 }
@@ -98,11 +100,11 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		var authorRelation2 Relationship
 
 		authorRelation1.Id1 = user.Id
-		authorRelation1.Id2 = 98688141287751680
+		authorRelation1.Id2 = authorId
 		authorRelation1.Alias = "Mychat Author"
 		authorRelation1.CreatedAt = time.Now().Unix()
 
-		authorRelation2.Id1 = 98688141287751680
+		authorRelation2.Id1 = authorId
 		authorRelation2.Id2 = user.Id
 		authorRelation2.Alias = ""
 		authorRelation2.CreatedAt = time.Now().Unix()
