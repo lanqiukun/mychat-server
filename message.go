@@ -20,7 +20,7 @@ type ClientMessage struct {
 
 type ClientNotification struct {
 	NickName  string `json:"nickname,omitempty"`
-	Id        uint64 `json:"id,omitempty"`
+	StrId     string `json:"strid,omitempty"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
 	Token     string `json:"token,omitempty"`
 }

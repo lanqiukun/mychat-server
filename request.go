@@ -119,7 +119,7 @@ func getidtoken(w http.ResponseWriter, r *http.Request) {
 
 	//生成client response
 	clientResponse.Status = 0
-	clientResponse.Id = user.Id
+	clientResponse.StrId = strconv.FormatUint(user.Id, 10)
 	clientResponse.AvatarUrl = user.Avatar
 	clientResponse.NickName = user.Nickname
 	clientResponse.Token = strconv.FormatUint(token, 10)
