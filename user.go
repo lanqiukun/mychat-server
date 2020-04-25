@@ -6,17 +6,11 @@ import (
 	"strconv"
 )
 
-type UserBasic struct {
-	Id       uint64 `json:"-"`
+type User struct {
+	Id       uint64 `json:"id"`
 	Nickname string `json:"nickname"`
 	Avatar   string `json:"avatar"`
-	StrId    string `json:"id"`
-}
-
-type User struct {
-	UserBasic
-	WsToken    uint64 `json:"-"`
-	WsStrToken uint64 `json:"ws_token"`
+	Token    uint64 `json:"token"`
 }
 
 type Contact struct {
@@ -65,7 +59,8 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			return
 		}
-		w.Write([]byte(clientResponseJson))
+		println(string(clientResponseJson))
+		w.Write(clientResponseJson)
 	}()
 
 	id := r.URL.Query().Get("id")
@@ -103,7 +98,7 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.WsToken != wsToken {
+	if user.Token != wsToken {
 		clientResponse.Status = 1
 		clientResponse.Reason = "用户token不正确"
 		return
