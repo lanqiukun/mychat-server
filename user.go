@@ -16,7 +16,7 @@ type Contact struct {
 	Id       uint64 `json:"-"`
 	Nickname string `json:"nickname"`
 	Avatar   string `json:"avatar"`
-	Alias    string `json:"alias"`
+	Alias    string `json:"alias,omitempty"`
 	StrId    string `json:"strid"`
 }
 
