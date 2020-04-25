@@ -108,7 +108,7 @@ func writePump() {
 		clientResponse.Status = 0
 
 		if ok {
-			msgJson, err := json.Marshal(clientMessage)
+			msgJson, err := json.Marshal(clientResponse)
 			if err != nil {
 				continue
 			}
