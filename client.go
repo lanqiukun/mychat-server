@@ -125,7 +125,6 @@ func writePump() {
 			// db.Table("server_messages").Where("id = (?)", sm.Id).Updates(map[string]interface{}{"received_at": 18})
 			// db.Table("server_messages").Where("id IN (?)", []int{10, 11}).Updates(map[string]interface{}{"received_at": 0, "age": 18})
 		} else {
-
 			db.Create(&sm)
 		}
 
