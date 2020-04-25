@@ -7,9 +7,16 @@ import (
 )
 
 type UserBasic struct {
-	Id       uint64 `json:"id"`
+	Id       uint64 `json:"-"`
 	Nickname string `json:"nickname"`
 	Avatar   string `json:"avatar"`
+	StrId    string `json:"id"`
+}
+
+type User struct {
+	UserBasic
+	WsToken    uint64 `json:"-"`
+	WsStrToken uint64 `json:"ws_token"`
 }
 
 type Contact struct {
@@ -18,11 +25,6 @@ type Contact struct {
 	Avatar   string `json:"avatar"`
 	Alias    string `json:"alias,omitempty"`
 	StrId    string `json:"strid"`
-}
-
-type User struct {
-	UserBasic
-	WsToken uint64 `json:"ws_token"`
 }
 
 func userinfo(w http.ResponseWriter, r *http.Request) {

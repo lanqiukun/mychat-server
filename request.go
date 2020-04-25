@@ -174,7 +174,7 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		println("invalid token parsed")
+		println("invalid id parsed")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户id不合法，解析失败"
 
