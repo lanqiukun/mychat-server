@@ -75,24 +75,24 @@ func readPump(userId uint64, conn *websocket.Conn) {
 }
 
 func writePump() {
-	for cm := range cmp {
+	for clientMessage := range cmp {
 		var err error
-		var sm ServerMessage
+		var serverMessage ServerMessage
 
-		sm.Sender_id, err = strconv.ParseUint(cm.Sender_str_id, 10, 64)
+		serverMessage.Sender_id, err = strconv.ParseUint(clientMessage.Sender_str_id, 10, 64)
 		if err != nil {
 			return
 		}
-		sm.Receiver_id, err = strconv.ParseUint(cm.Receiver_str_id, 10, 64)
+		serverMessage.Receiver_id, err = strconv.ParseUint(clientMessage.Receiver_str_id, 10, 64)
 		if err != nil {
 			return
 		}
 
 		//将cm转为smgs
-		sm.Message = cm.Message
+		serverMessage.Message = clientMessage.Message
 
 		cpl.RLock()
-		targetConnection, ok := cp[sm.Receiver_id]
+		targetConnection, ok := cp[serverMessage.Receiver_id]
 		cpl.RUnlock()
 
 		db, err := getdb()
@@ -101,31 +101,37 @@ func writePump() {
 			return
 		}
 
+		var clientResponse ClientResponse
+
+		clientResponse.ClientMessage = clientMessage
+		clientResponse.ResponseType = 0
+		clientResponse.Status = 0
+
 		if ok {
-			msgJson, err := json.Marshal(cm)
+			msgJson, err := json.Marshal(clientMessage)
 			if err != nil {
 				continue
 			}
 
 			//尝试向目标用户发送消息
 			cpl.Lock()
-			err = targetConnection.WriteMessage(websocket.TextMessage, []byte(msgJson))
+			err = targetConnection.WriteMessage(websocket.TextMessage, msgJson)
 			cpl.Unlock()
 			if err == nil {
-				sm.Received_at = time.Now().Unix()
+				serverMessage.Received_at = time.Now().Unix()
 			}
 
 		}
 
 		//如果存在，则更新数据库，否则新增
 		// var temp ServerMessage
-		if sm.Id != 0 {
+		if serverMessage.Id != 0 {
 
-			db.Table("server_messages").Where("id = (?)", sm.Id).Update("received_at", time.Now().Unix())
+			db.Table("server_messages").Where("id = (?)", serverMessage.Id).Update("received_at", time.Now().Unix())
 			// db.Table("server_messages").Where("id = (?)", sm.Id).Updates(map[string]interface{}{"received_at": 18})
 			// db.Table("server_messages").Where("id IN (?)", []int{10, 11}).Updates(map[string]interface{}{"received_at": 0, "age": 18})
 		} else {
-			db.Create(&sm)
+			db.Create(&serverMessage)
 		}
 
 		db.Close()
