@@ -63,8 +63,8 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 		w.Write(clientResponseJson)
 	}()
 
-	id := r.URL.Query().Get("id")
-	token := r.URL.Query().Get("token")
+	strId := r.URL.Query().Get("id")
+	strToken := r.URL.Query().Get("token")
 
 	db, err := getdb()
 	if err != nil {
@@ -75,14 +75,14 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 	}
 	defer db.Close()
 
-	userId, err := strconv.ParseUint(id, 10, 64)
+	id, err := strconv.ParseUint(strId, 10, 64)
 	if err != nil {
 		clientResponse.Status = 1
 		clientResponse.Reason = "用户id不合法，解析失败"
 		return
 	}
 
-	wsToken, err := strconv.ParseUint(token, 10, 64)
+	token, err := strconv.ParseUint(strToken, 10, 64)
 	if err != nil {
 		clientResponse.Status = 1
 		clientResponse.Reason = "用户token不合法，解析失败"
@@ -90,7 +90,7 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var user User
-	db.Find(&user, userId)
+	db.Find(&user, id)
 
 	if user.Id == 0 {
 		clientResponse.Status = 1
@@ -98,7 +98,7 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Token != wsToken {
+	if user.Token != token {
 		clientResponse.Status = 1
 		clientResponse.Reason = "用户token不正确"
 		return
@@ -107,7 +107,7 @@ func getcontact(w http.ResponseWriter, r *http.Request) {
 	//用户提交了合法凭据,查找数据库
 	if clientResponse.Status == 0 {
 		rows, err := db.Table("relationships").Select("users.id, users.nickname, users.avatar, relationships.alias").
-			Where("id1 = (?)", userId).Joins("left join users on relationships.id2 = users.id").Rows()
+			Where("id1 = (?)", id).Joins("left join users on relationships.id2 = users.id").Rows()
 		if err != nil {
 			println(err.Error())
 			clientResponse.Status = 1

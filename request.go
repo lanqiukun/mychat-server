@@ -15,7 +15,7 @@ import (
 const authorId = 63495249
 
 type ClientRequest struct {
-	Code string `json"code"`
+	Code string `json:"code"`
 }
 
 func cors(w *http.ResponseWriter, r *http.Request) {
@@ -26,7 +26,7 @@ func cors(w *http.ResponseWriter, r *http.Request) {
 	(*w).Header().Set("Content-Type", "application/json")
 }
 
-func wstokenuserid(w http.ResponseWriter, r *http.Request) {
+func getidtoken(w http.ResponseWriter, r *http.Request) {
 
 	cors(&w, r)
 
@@ -114,7 +114,7 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		db.Create(&authorRelation2)
 	} else {
 		//用户已经在数据库中
-		db.Table("users").Where("id = (?)", user.Id).Update("ws_token", token)
+		db.Table("users").Where("id = (?)", user.Id).Update("token", token)
 	}
 
 	//生成client response
@@ -122,7 +122,7 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 	clientResponse.Id = user.Id
 	clientResponse.AvatarUrl = user.Avatar
 	clientResponse.NickName = user.Nickname
-	clientResponse.WsToken = strconv.FormatUint(token, 10)
+	clientResponse.Token = strconv.FormatUint(token, 10)
 
 }
 
@@ -141,7 +141,7 @@ func serveHome(w http.ResponseWriter, r *http.Request) {
 
 //如果请求合法,则相应成功信息并返回websocket连接给调用者
 //如果失败则返回响应失败信息和error并关闭websocket连接
-func establishwsconn(w http.ResponseWriter, r *http.Request) {
+func establishWsConn(w http.ResponseWriter, r *http.Request) {
 	authenticate(w, r)
 }
 

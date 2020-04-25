@@ -22,7 +22,7 @@ type ClientNotification struct {
 	NickName  string `json:"nickname,omitempty"`
 	Id        uint64 `json:"id,omitempty"`
 	AvatarUrl string `json:"avatar_url,omitempty"`
-	WsToken   string `json:"ws_token,omitempty"`
+	Token     string `json:"token,omitempty"`
 }
 
 type ClientResponse struct {

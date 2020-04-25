@@ -52,8 +52,8 @@ func main() {
 	http.HandleFunc("/", serveHome)
 	http.HandleFunc("/userinfo", userinfo)
 	http.HandleFunc("/getcontact", getcontact)
-	http.HandleFunc("/wstokenuserid", wstokenuserid)
-	http.HandleFunc("/ws", establishwsconn)
+	http.HandleFunc("/getidtoken", getidtoken)
+	http.HandleFunc("/ws", establishWsConn)
 
 	err := http.ListenAndServe("10.255.0.118:8080", nil)
 
