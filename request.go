@@ -93,7 +93,7 @@ func wstokenuserid(w http.ResponseWriter, r *http.Request) {
 		//用户不在数据库中
 		user.Id = ghui.Id
 		user.Nickname = ghui.Login
-		user.WsToken = token
+		user.Token = token
 		user.Avatar = ghui.AvatarUrl
 
 		var authorRelation1 Relationship
@@ -213,7 +213,7 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 		return fatalError
 	}
 
-	if user.WsToken != wsToken {
+	if user.Token != wsToken {
 		println("invalid token")
 		tempResponse.Status = 1
 		tempResponse.Reason = "用户token不正确"
