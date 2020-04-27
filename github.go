@@ -45,27 +45,27 @@ func requestGitHubToken(code string) (GitHubToken, error) {
 
 	request, err := http.NewRequest("POST", url, nil)
 	if err != nil {
-		return GitHubToken{}, fmt.Errorf("服务器创建GitHub请求时发生错误0")
+		return GitHubToken{}, fmt.Errorf("服务器创建GitHub请求时发生错误")
 	}
 	request.Header.Add("Accept", "application/json")
 
 	response, err := client.Do(request)
 	if err != nil {
-		return GitHubToken{}, fmt.Errorf("服务器发起GitHub请求时发生错误0")
+		return GitHubToken{}, fmt.Errorf("服务器发起GitHub请求时发生错误")
 	}
 	defer response.Body.Close()
 
 	body, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
-		return GitHubToken{}, fmt.Errorf("服务器读取GitHub响应时发生错误0")
+		return GitHubToken{}, fmt.Errorf("服务器读取GitHub响应时发生错误")
 	}
 
 	var ght GitHubToken
 
 	err = json.Unmarshal(body, &ght)
 	if err != nil {
-		return GitHubToken{}, fmt.Errorf("服务器解析GitHub响应时发生错误0")
+		return GitHubToken{}, fmt.Errorf("服务器解析GitHub响应时发生错误")
 	}
 
 	if ght.Error == "" && ght.ErrorDescription == "" && ght.ErrorUri == "" {
@@ -83,7 +83,7 @@ func getGitHubUserInfo(ght GitHubToken) (GitHubUserInfo, error) {
 
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return GitHubUserInfo{}, fmt.Errorf("服务器创建GitHub请求时发生错误1")
+		return GitHubUserInfo{}, fmt.Errorf("服务器创建GitHub请求时发生错误")
 	}
 
 	request.Header.Add("Accept", "application/json")
@@ -91,12 +91,12 @@ func getGitHubUserInfo(ght GitHubToken) (GitHubUserInfo, error) {
 
 	response, err := client.Do(request)
 	if err != nil {
-		return GitHubUserInfo{}, fmt.Errorf("服务器发起GitHub请求时发生错误1")
+		return GitHubUserInfo{}, fmt.Errorf("服务器向GitHub请求用户信息时发生错误")
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return GitHubUserInfo{}, fmt.Errorf("服务器读取GitHub响应时发生错误1")
+		return GitHubUserInfo{}, fmt.Errorf("服务器读取GitHub响应的用户信息时发生错误")
 	}
 	defer response.Body.Close()
 
@@ -104,7 +104,7 @@ func getGitHubUserInfo(ght GitHubToken) (GitHubUserInfo, error) {
 
 	err = json.Unmarshal(body, &ghui)
 	if err != nil {
-		return GitHubUserInfo{}, fmt.Errorf("服务器解析GitHub响应时发生错误1")
+		return GitHubUserInfo{}, fmt.Errorf("服务器解析GitHub响应的用户信息时发生错误")
 	}
 
 	return ghui, nil

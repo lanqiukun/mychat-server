@@ -6,6 +6,7 @@ import (
 	"strconv"
 )
 
+//user 是当前的用户信息，包含token等敏感信息
 type User struct {
 	Id       uint64 `json:"id"`
 	Nickname string `json:"nickname"`
@@ -13,6 +14,7 @@ type User struct {
 	Token    uint64 `json:"token"`
 }
 
+//联系人信息
 type Contact struct {
 	Id       uint64 `json:"-"`
 	Nickname string `json:"nickname"`
@@ -21,18 +23,24 @@ type Contact struct {
 	StrId    string `json:"strid"`
 }
 
-func userinfo(w http.ResponseWriter, r *http.Request) {
+func contactinfo(w http.ResponseWriter, r *http.Request) {
 	cors(&w, r)
 
-	id := r.URL.Query().Get("id")
+	id := r.URL.Query().Get("strid")
+
+	var clientResponse ClientResponse
+	clientResponse.ResponseType = 8 //请求资源
+	clientResponse.Status = 1       //默认是失败的请求
 
 	db, err := getdb()
-	defer db.Close()
-
 	if err != nil {
-		println(err.Error())
+		println(err)
+		clientResponse.Reason = "请求联系人信息时发生数据库错误"
 		return
 	}
+
+	defer db.Close()
+
 	var user User
 
 	db.Find(&user, id)
@@ -41,17 +49,25 @@ func userinfo(w http.ResponseWriter, r *http.Request) {
 
 	info, err := json.Marshal(user)
 	if err != nil {
+		println(err.Error())
+		clientResponse.Reason = "解析联系人信息时发生错误"
 		return
 	}
 
-	w.Write([]byte(info))
+	clientResponse.Body = string(info)
+
+	clientResponse.Status = 0
+	clientResponseJson, err := json.Marshal(clientResponse)
+
+	w.Write(clientResponseJson)
+
 }
 
 func getcontact(w http.ResponseWriter, r *http.Request) {
 	cors(&w, r)
 
 	var clientResponse ClientResponse
-	clientResponse.ResponseType = 6
+	clientResponse.ResponseType = 7
 	clientResponse.Status = 0
 
 	defer func() {

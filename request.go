@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -26,6 +25,54 @@ func cors(w *http.ResponseWriter, r *http.Request) {
 	(*w).Header().Set("Content-Type", "application/json")
 }
 
+func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
+	cors(&w, r)
+
+	strId := r.URL.Query().Get("id")
+	strToken := r.URL.Query().Get("token")
+
+	validCredentials := false
+
+	defer func() {
+		if validCredentials == true {
+			w.Write([]byte(`{"valid_credentials": true}`))
+		} else {
+			w.Write([]byte(`{"valid_credentials": false}`))
+		}
+	}()
+
+	db, err := getdb()
+	if err != nil {
+		println(err.Error())
+		return
+	}
+	defer db.Close()
+
+	id, err := strconv.ParseUint(strId, 10, 64)
+	if err != nil {
+		return
+	}
+
+	token, _ := strconv.ParseUint(strToken, 10, 64)
+	if err != nil {
+		return
+	}
+
+	var user User
+	db.Find(&user, id)
+
+	if user.Id == 0 {
+		return
+	}
+
+	if user.Token != token {
+		return
+	}
+
+	validCredentials = true
+
+}
+
 func getidtoken(w http.ResponseWriter, r *http.Request) {
 
 	cors(&w, r)
@@ -33,6 +80,7 @@ func getidtoken(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(200)
 		println("preflight request")
+		return
 	}
 
 	if r.Method != "POST" {
@@ -126,19 +174,6 @@ func getidtoken(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func serveHome(w http.ResponseWriter, r *http.Request) {
-	log.Println(r.URL)
-	if r.URL.Path != "/" {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	if r.Method != "GET" {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	http.ServeFile(w, r, "home.html")
-}
-
 //如果请求合法,则相应成功信息并返回websocket连接给调用者
 //如果失败则返回响应失败信息和error并关闭websocket连接
 func establishWsConn(w http.ResponseWriter, r *http.Request) {
@@ -156,12 +191,14 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	var tempResponse ClientResponse
-	tempResponse.ResponseType = 5
+	tempResponse.ResponseType = 7
 	tempResponse.Status = 0
 
 	defer func() {
 		if tempResponseJson, err := json.Marshal(tempResponse); err == nil {
+			writeLock.Lock()
 			conn.WriteMessage(websocket.TextMessage, tempResponseJson)
+			writeLock.Unlock()
 		}
 
 		if fatalError != nil {
