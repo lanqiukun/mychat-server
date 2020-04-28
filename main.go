@@ -45,6 +45,12 @@ func init() {
 	rand.Seed(int64(rand.Int31() + rand.Int31()))
 }
 
+const (
+	environment = 0
+	devhost     = "localhost"
+	onlinehost  = "10.255.0.118"
+)
+
 func main() {
 
 	go detect()
@@ -66,9 +72,15 @@ func main() {
 	//创建ws连接
 	http.HandleFunc("/ws", establishWsConn)
 
-	err := http.ListenAndServe("10.255.0.118:8080", nil)
+	var servehost string
 
-	// err := http.ListenAndServe("192.168.31.253:8080", nil)
+	if environment == 1 {
+		servehost = devhost
+	} else {
+		servehost = onlinehost
+	}
+
+	err := http.ListenAndServe(servehost+":8080", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
