@@ -88,7 +88,7 @@ func writePump() {
 			return
 		}
 
-		//将cm转为smgs
+		//将cm转为sm
 		serverMessage.Message = clientMessage.Message
 
 		cpl.RLock()
@@ -119,6 +119,7 @@ func writePump() {
 			writeLock.Unlock()
 			if err == nil {
 				serverMessage.Received_at = time.Now().Unix()
+				println("我推了一条消息出去")
 			}
 
 		}
@@ -131,9 +132,9 @@ func writePump() {
 			// db.Table("server_messages").Where("id = (?)", sm.Id).Updates(map[string]interface{}{"received_at": 18})
 			// db.Table("server_messages").Where("id IN (?)", []int{10, 11}).Updates(map[string]interface{}{"received_at": 0, "age": 18})
 		} else {
+
 			db.Create(&serverMessage)
 		}
-
 		db.Close()
 
 	}

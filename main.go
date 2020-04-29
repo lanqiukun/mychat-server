@@ -22,7 +22,7 @@ var cmpl sync.RWMutex
 var writeLock sync.RWMutex
 
 func getdb() (*gorm.DB, error) {
-	return gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8&parseTime=True&loc=Local")
+	return gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8mb4&parseTime=True&loc=Local")
 }
 
 func detect() {
@@ -46,7 +46,7 @@ func init() {
 }
 
 const (
-	environment = 0
+	environment = 1
 	devhost     = "localhost"
 	onlinehost  = "10.255.0.118"
 )
