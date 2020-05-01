@@ -1,8 +1,13 @@
 package main
 
 type Message struct {
-	Id                  uint64 `json:"id,omitempty"`
-	Type                uint8  `json:"type,omitempty"`
+	Id   uint64 `json:"id,omitempty"`
+	Type uint8  `json:"type"` //这里不能加omitempty,否则type为0时将不产生type字段
+	//文本类型0
+	//文件类型1
+	//图片类型2
+	//视频类型3
+	//音频类型4
 	Body                string `json:"body,omitempty"`
 	Created_at          int64  `json:"created_at,omitempty"`
 	Modified_at         int64  `json:"modified_at,omitempty"`

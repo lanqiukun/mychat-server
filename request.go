@@ -17,16 +17,28 @@ type ClientRequest struct {
 	Code string `json:"code"`
 }
 
-func cors(w *http.ResponseWriter, r *http.Request) {
+func cors(w *http.ResponseWriter, r *http.Request) bool {
 	(*w).Header().Set("Access-Control-Allow-Origin", "*")
 	(*w).Header().Set("Access-Control-Allow-Credentials", "true")
 	(*w).Header().Set("Access-Control-Allow-Headers", "DNT,X-Mx-ReqToken,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Authorization")
 	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, TRACE, CONNECT, OPTIONS")
-	(*w).Header().Set("Content-Type", "application/json")
+
+	//如果将要返回的是json
+	//(*w).Header().Set("Content-Type", "application/json")
+
+	//如果是跨域预检请求，那就别再继续执行。
+	if r.Method == "OPTIONS" {
+		(*w).WriteHeader(200)
+		return true
+	}
+
+	return false
 }
 
 func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
-	cors(&w, r)
+	if isPreflight := cors(&w, r); isPreflight == true {
+		return
+	}
 
 	strId := r.URL.Query().Get("id")
 	strToken := r.URL.Query().Get("token")
@@ -75,7 +87,9 @@ func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
 
 func getidtoken(w http.ResponseWriter, r *http.Request) {
 
-	cors(&w, r)
+	if isPreflight := cors(&w, r); isPreflight == true {
+		return
+	}
 
 	if r.Method == "OPTIONS" {
 		w.WriteHeader(200)

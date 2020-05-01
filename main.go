@@ -47,7 +47,7 @@ func init() {
 
 const (
 	environment = 1
-	devhost     = "localhost"
+	devhost     = "192.168.31.253"
 	onlinehost  = "10.255.0.118"
 )
 
@@ -71,6 +71,12 @@ func main() {
 
 	//创建ws连接
 	http.HandleFunc("/ws", establishWsConn)
+
+	//文件上传
+	http.HandleFunc("/upload", uploadFile)
+
+	//文件访问
+	http.Handle("/upload/", http.StripPrefix("/upload/", http.FileServer(http.Dir("./upload"))))
 
 	var servehost string
 

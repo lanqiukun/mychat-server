@@ -24,7 +24,9 @@ type Contact struct {
 }
 
 func contactinfo(w http.ResponseWriter, r *http.Request) {
-	cors(&w, r)
+	if isPreflight := cors(&w, r); isPreflight == true {
+		return
+	}
 
 	id := r.URL.Query().Get("strid")
 
@@ -64,7 +66,9 @@ func contactinfo(w http.ResponseWriter, r *http.Request) {
 }
 
 func getcontact(w http.ResponseWriter, r *http.Request) {
-	cors(&w, r)
+	if isPreflight := cors(&w, r); isPreflight == true {
+		return
+	}
 
 	var clientResponse ClientResponse
 	clientResponse.ResponseType = 7

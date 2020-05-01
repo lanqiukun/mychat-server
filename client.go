@@ -104,6 +104,8 @@ func writePump() {
 		var clientResponse ClientResponse
 
 		clientResponse.ClientMessage = clientMessage
+		print("message type is: ")
+		println(clientResponse.ClientMessage.Type)
 		clientResponse.ResponseType = 0
 		clientResponse.Status = 0
 
