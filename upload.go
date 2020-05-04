@@ -9,6 +9,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 
 type File struct {
 	//
-	Type uint   `json:"type"`
+	Type uint8  `json:"type"`
 	Url  string `json:"url"`
 }
 
@@ -38,7 +39,6 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	if isPreflight := cors(&w, r); isPreflight == true {
 		return
 	}
-	//先验证凭据
 
 	var uploadResponse UploadResponse
 	uploadResponse.Status = 1
@@ -53,8 +53,28 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 	}()
 
+	id, err := strconv.ParseUint(r.FormValue("strid"), 10, 64)
+	if err != nil {
+		println(err.Error())
+		uploadResponse.Reason = "用户提交的id不合法"
+		return
+	}
+
+	token, err := strconv.ParseUint(r.FormValue("token"), 10, 64)
+	if err != nil {
+		println(err.Error())
+		uploadResponse.Reason = "用户提交的token不合法"
+		return
+	}
+
+	//先验证凭据
+	if err := validIdToken(id, token); err != nil {
+		uploadResponse.Reason = err.Error()
+		return
+	}
+
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize) // 20 Mb
-	err := r.ParseMultipartForm(maxUploadSize)             // grab the multipart form
+	err = r.ParseMultipartForm(maxUploadSize)              // grab the multipart form
 	if err != nil {
 		fmt.Fprintln(w, err)
 		uploadResponse.Status = 2
@@ -106,7 +126,7 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		} else {
 			dir += "file"
 			fileName = file.Filename
-			clientFileInfo.Type = 5
+			clientFileInfo.Type = 1
 		}
 		//////////////////////////////////////////////
 
@@ -140,6 +160,17 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 
 		uploadResponse.Files = append(uploadResponse.Files, clientFileInfo)
 
+		var clientMessage ClientMessage
+		clientMessage.Sender_str_id = r.FormValue("strid")
+		clientMessage.Receiver_str_id = r.FormValue("receiver_str_id")
+		clientMessage.Type = clientFileInfo.Type
+		clientMessage.Body = clientFileInfo.Url
+		clientMessage.Created_at = time.Now().Unix()
+
+		clientMessagePoolLock.Lock()
+		clientMessagePool <- clientMessage
+		clientMessagePoolLock.Unlock()
 	}
 	uploadResponse.Status = 0
+
 }

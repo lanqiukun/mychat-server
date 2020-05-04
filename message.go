@@ -48,6 +48,9 @@ type ClientResponse struct {
 	//正常0	失败1
 	Status uint8  `json:"status"`
 	Reason string `json:"reason,omitempty"`
+
+	//用户已经在线1
+	Code uint8 `json:"code"`
 }
 
 type ServerMessage struct {

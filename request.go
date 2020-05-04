@@ -35,7 +35,88 @@ func cors(w *http.ResponseWriter, r *http.Request) bool {
 	return false
 }
 
+type EmailPassword struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+//如果用户提交的邮箱或密码正确，则返回id和令牌
+func verifyemailpassword(w http.ResponseWriter, r *http.Request) {
+	if isPreflight := cors(&w, r); isPreflight == true {
+		return
+	}
+
+	if r.Method != "POST" {
+		w.WriteHeader(405)
+		println("no post request")
+		return
+	}
+
+	var clientResponse ClientResponse
+	clientResponse.Status = 1
+	clientResponse.Reason = "unknown"
+
+	defer func() {
+		clientResponseJson, err := json.Marshal(clientResponse)
+		if err != nil {
+			println(err.Error())
+			return
+		}
+		w.Write(clientResponseJson)
+	}()
+
+	decoder := json.NewDecoder(r.Body)
+
+	var user User
+
+	err := decoder.Decode(&user)
+	if err != nil {
+		println(err.Error())
+		clientResponse.Reason = "请求解析失败"
+		w.WriteHeader(500)
+		return
+	}
+
+	email := user.Email
+	password := user.Password
+
+	db, err := getdb()
+	if err != nil {
+		println(err.Error())
+		clientResponse.Reason = "连接数据库时发生错误"
+		w.WriteHeader(500)
+		return
+	}
+	defer db.Close()
+
+	db.Where("email = ?", email).First(&user)
+
+	if user.Id == 0 {
+		clientResponse.Reason = "邮箱账号或密码不正确"
+		w.WriteHeader(200)
+		return
+	}
+
+	validEmailPassword := CheckPasswordHash(password, user.Password)
+	if validEmailPassword != true {
+		clientResponse.Reason = "邮箱账号或密码不正确"
+		w.WriteHeader(200)
+		return
+	}
+
+	//至此证明用户提交的邮箱和密码正确
+
+	clientResponse.StrId = strconv.FormatUint(user.Id, 10)
+	clientResponse.Token = strconv.FormatUint(user.Token, 10)
+	clientResponse.NickName = user.Nickname
+	clientResponse.AvatarUrl = user.Avatar
+
+	clientResponse.Status = 0
+	clientResponse.Reason = ""
+}
+
 func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
+
 	if isPreflight := cors(&w, r); isPreflight == true {
 		return
 	}
@@ -88,12 +169,6 @@ func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
 func getidtoken(w http.ResponseWriter, r *http.Request) {
 
 	if isPreflight := cors(&w, r); isPreflight == true {
-		return
-	}
-
-	if r.Method == "OPTIONS" {
-		w.WriteHeader(200)
-		println("preflight request")
 		return
 	}
 
@@ -204,14 +279,14 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	var tempResponse ClientResponse
-	tempResponse.ResponseType = 7
-	tempResponse.Status = 0
+	var clientResponse ClientResponse
+	clientResponse.ResponseType = 7
+	clientResponse.Status = 0
 
 	defer func() {
-		if tempResponseJson, err := json.Marshal(tempResponse); err == nil {
+		if clientResponseJson, err := json.Marshal(clientResponse); err == nil {
 			writeLock.Lock()
-			conn.WriteMessage(websocket.TextMessage, tempResponseJson)
+			conn.WriteMessage(websocket.TextMessage, clientResponseJson)
 			writeLock.Unlock()
 		}
 
@@ -226,20 +301,20 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 	userId, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
 		println("invalid id parsed")
-		tempResponse.Status = 1
-		tempResponse.Reason = "用户id不合法，解析失败"
+		clientResponse.Status = 1
+		clientResponse.Reason = "用户id不合法，解析失败"
 
-		fatalError = fmt.Errorf(tempResponse.Reason)
+		fatalError = fmt.Errorf(clientResponse.Reason)
 		return fatalError
 	}
 
 	wsToken, err := strconv.ParseUint(token, 10, 64)
 	if err != nil {
 		println("invalid token parsed")
-		tempResponse.Status = 1
-		tempResponse.Reason = "用户token不合法，解析失败"
+		clientResponse.Status = 1
+		clientResponse.Reason = "用户token不合法，解析失败"
 
-		fatalError = fmt.Errorf(tempResponse.Reason)
+		fatalError = fmt.Errorf(clientResponse.Reason)
 		return fatalError
 	}
 
@@ -257,32 +332,32 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 
 	if user.Id == 0 {
 		println("no such user")
-		tempResponse.Status = 1
-		tempResponse.Reason = "用户不存在"
+		clientResponse.Status = 1
+		clientResponse.Reason = "用户不存在"
 
-		fatalError = fmt.Errorf(tempResponse.Reason)
+		fatalError = fmt.Errorf(clientResponse.Reason)
 		return fatalError
 	}
 
 	if user.Token != wsToken {
 		println("invalid token")
-		tempResponse.Status = 1
-		tempResponse.Reason = "用户token不正确"
+		clientResponse.Status = 1
+		clientResponse.Reason = "用户token不正确"
 
-		fatalError = fmt.Errorf(tempResponse.Reason)
+		fatalError = fmt.Errorf(clientResponse.Reason)
 		return fatalError
 	}
 
-	cpl.Lock()
-	_, ok := cp[userId]
-	cpl.Unlock()
+	connectionPoolLock.Lock()
+	_, ok := connectionPool[userId]
+	connectionPoolLock.Unlock()
 
 	//用户刚上线，查找属于它的未读消息并将查找结果放入消息池
 	if !ok {
 
-		cpl.Lock()
-		cp[userId] = conn
-		cpl.Unlock()
+		connectionPoolLock.Lock()
+		connectionPool[userId] = conn
+		connectionPoolLock.Unlock()
 
 		var unread []ServerMessage
 
@@ -294,18 +369,19 @@ func authenticate(w http.ResponseWriter, r *http.Request) error {
 			clientMessage.Sender_str_id = strconv.FormatUint(sm.Sender_id, 10)
 			clientMessage.Receiver_str_id = strconv.FormatUint(sm.Receiver_id, 10)
 
-			cmpl.Lock()
-			cmp <- clientMessage
-			cmpl.Unlock()
+			clientMessagePoolLock.Lock()
+			clientMessagePool <- clientMessage
+			clientMessagePoolLock.Unlock()
 		}
 		go readPump(userId, conn)
 
 	} else {
 		println("user was already online")
-		tempResponse.Status = 1
-		tempResponse.Reason = "用户已经在线"
+		clientResponse.Status = 1
+		clientResponse.Reason = "用户已经在线"
+		clientResponse.Code = 1
 
-		fatalError = fmt.Errorf(tempResponse.Reason)
+		fatalError = fmt.Errorf(clientResponse.Reason)
 		return fatalError
 	}
 

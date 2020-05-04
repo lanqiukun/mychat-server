@@ -12,6 +12,8 @@ type User struct {
 	Nickname string `json:"nickname"`
 	Avatar   string `json:"avatar"`
 	Token    uint64 `json:"token"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 //联系人信息

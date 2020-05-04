@@ -27,30 +27,30 @@ var upgrader = websocket.Upgrader{
 }
 
 func closeConnection(userId uint64) {
-	cpl.Lock()
-	conn, ok := cp[userId]
+	connectionPoolLock.Lock()
+	conn, ok := connectionPool[userId]
 	if ok {
 		conn.Close()
-		delete(cp, userId)
+		delete(connectionPool, userId)
 	}
-	cpl.Unlock()
+	connectionPoolLock.Unlock()
 }
 
 func readPump(userId uint64, conn *websocket.Conn) {
 
 	defer closeConnection(userId)
 
-	conn.SetReadLimit(maxMessageSize)
+	conn.SetReadLimit(200)
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			return
 		}
-		var cm ClientMessage //client message
+		var clientMessage ClientMessage //client message
 		println(string(message))
 		println("我拿到一条消息")
 
-		err = json.Unmarshal(message, &cm)
+		err = json.Unmarshal(message, &clientMessage)
 		if err != nil {
 			println("json unmarshal failed")
 			return
@@ -67,18 +67,21 @@ func readPump(userId uint64, conn *websocket.Conn) {
 		// println(cm.Receiver_deleted_at)
 		// println(cm.Withdrawn_at)
 
-		cm.Created_at = time.Now().Unix()
-		cm.Id = 0
-		cmp <- cm
+		clientMessage.Created_at = time.Now().Unix()
+		clientMessage.Id = 0
 
+		clientMessagePoolLock.Lock()
+		clientMessagePool <- clientMessage
+		clientMessagePoolLock.Unlock()
 	}
 }
 
 func writePump() {
-	for clientMessage := range cmp {
+	for clientMessage := range clientMessagePool {
 		var err error
 		var serverMessage ServerMessage
 
+		//将clientMessage转为serverMessage
 		serverMessage.Sender_id, err = strconv.ParseUint(clientMessage.Sender_str_id, 10, 64)
 		if err != nil {
 			return
@@ -88,12 +91,11 @@ func writePump() {
 			return
 		}
 
-		//将cm转为sm
 		serverMessage.Message = clientMessage.Message
 
-		cpl.RLock()
-		targetConnection, ok := cp[serverMessage.Receiver_id]
-		cpl.RUnlock()
+		connectionPoolLock.RLock()
+		targetConnection, ok := connectionPool[serverMessage.Receiver_id]
+		connectionPoolLock.RUnlock()
 
 		db, err := getdb()
 		if err != nil {

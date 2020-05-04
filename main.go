@@ -13,16 +13,16 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 )
 
-var cp = make(map[uint64]*websocket.Conn)
-var cpl sync.RWMutex
+var connectionPool = make(map[uint64]*websocket.Conn)
+var connectionPoolLock sync.RWMutex
 
-var cmp = make(chan ClientMessage, 1000000)
-var cmpl sync.RWMutex
+var clientMessagePool = make(chan ClientMessage, 1000000)
+var clientMessagePoolLock sync.RWMutex
 
 var writeLock sync.RWMutex
 
 func getdb() (*gorm.DB, error) {
-	return gorm.Open("mysql", "root:Edison3306#@(lowb.top:3306)/mychat?charset=utf8mb4&parseTime=True&loc=Local")
+	return gorm.Open("mysql", "root:Edison3306#@(116.85.40.216:3306)/mychat?charset=utf8mb4&parseTime=True&loc=Local")
 }
 
 func detect() {
@@ -30,12 +30,12 @@ func detect() {
 	for {
 		i++
 		time.Sleep(time.Second * 2)
-		cpl.RLock()
-		for i, _ := range cp {
+		connectionPoolLock.RLock()
+		for i, _ := range connectionPool {
 			print(i)
 			print("    ")
 		}
-		cpl.RUnlock()
+		connectionPoolLock.RUnlock()
 		println()
 	}
 }
@@ -62,6 +62,9 @@ func main() {
 
 	//验证用户凭据
 	http.HandleFunc("/authenticationcredentials", authenticationcredentials)
+
+	//验证邮箱和密码
+	http.HandleFunc("/verifyemailpassword", verifyemailpassword)
 
 	//获取所有联系人
 	http.HandleFunc("/getcontact", getcontact)
