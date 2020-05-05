@@ -1,6 +1,9 @@
 package main
 
 import (
+	crypt_rand "crypto/rand"
+	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -43,13 +46,49 @@ func detect() {
 func init() {
 	rand.Seed(time.Now().Unix())
 	rand.Seed(int64(rand.Int31() + rand.Int31()))
+
+	assertAvailablePRNG()
 }
 
 const (
+	//1是开发环境，0是生产环境
 	environment = 1
-	devhost     = "192.168.31.253"
-	onlinehost  = "10.255.0.118"
+
+	schema = "http"
+
+	frontEndPort = "80"
+	backEndPort  = "8080"
+	devhost      = "192.168.31.253"
+	onlinehost   = "10.255.0.118"
+
+	ActivateEmailAccountUrl = "/activate-email-account"
 )
+
+var servehost string
+var EmailActivatingHostUrl string
+var EmailRegisterSucceedUrl string
+
+func init() {
+	if environment == 1 {
+		servehost = devhost
+	} else {
+		servehost = onlinehost
+	}
+
+	EmailActivatingHostUrl = schema + "://" + servehost + ":" + backEndPort + ActivateEmailAccountUrl
+	EmailRegisterSucceedUrl = schema + "://" + servehost + ":" + frontEndPort
+}
+
+func assertAvailablePRNG() {
+	// 判断系统支不支持生成密码安全的（cryptographically secure）伪随机数
+	buf := make([]byte, 1)
+
+	_, err := io.ReadFull(crypt_rand.Reader, buf)
+	if err != nil {
+		//go所运行的系统不支持上述要求
+		panic(fmt.Sprintf("crypto/rand is unavailable: Read() failed with %#v", err))
+	}
+}
 
 func main() {
 
@@ -62,6 +101,12 @@ func main() {
 
 	//验证用户凭据
 	http.HandleFunc("/authenticationcredentials", authenticationcredentials)
+
+	//邮箱账号注册
+	http.HandleFunc("/email-register", emailRegister)
+
+	//邮箱账户激活
+	http.HandleFunc(ActivateEmailAccountUrl, activateEmailAccount)
 
 	//验证邮箱和密码
 	http.HandleFunc("/verifyemailpassword", verifyemailpassword)
@@ -81,15 +126,7 @@ func main() {
 	//文件访问
 	http.Handle("/upload/", http.StripPrefix("/upload/", http.FileServer(http.Dir("./upload"))))
 
-	var servehost string
-
-	if environment == 1 {
-		servehost = devhost
-	} else {
-		servehost = onlinehost
-	}
-
-	err := http.ListenAndServe(servehost+":8080", nil)
+	err := http.ListenAndServe(servehost+":"+backEndPort, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}

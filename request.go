@@ -42,7 +42,7 @@ type EmailPassword struct {
 
 //如果用户提交的邮箱或密码正确，则返回id和令牌
 func verifyemailpassword(w http.ResponseWriter, r *http.Request) {
-	if isPreflight := cors(&w, r); isPreflight == true {
+	if cors(&w, r) {
 		return
 	}
 
@@ -117,7 +117,7 @@ func verifyemailpassword(w http.ResponseWriter, r *http.Request) {
 
 func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
 
-	if isPreflight := cors(&w, r); isPreflight == true {
+	if cors(&w, r) {
 		return
 	}
 
@@ -168,7 +168,7 @@ func authenticationcredentials(w http.ResponseWriter, r *http.Request) {
 
 func getidtoken(w http.ResponseWriter, r *http.Request) {
 
-	if isPreflight := cors(&w, r); isPreflight == true {
+	if cors(&w, r) {
 		return
 	}
 

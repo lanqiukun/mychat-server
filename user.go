@@ -8,12 +8,13 @@ import (
 
 //user 是当前的用户信息，包含token等敏感信息
 type User struct {
-	Id       uint64 `json:"id"`
-	Nickname string `json:"nickname"`
-	Avatar   string `json:"avatar"`
-	Token    uint64 `json:"token"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Id              uint64 `json:"id"`
+	Nickname        string `json:"nickname"`
+	Avatar          string `json:"avatar"`
+	Token           uint64 `json:"token"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	ActivationToken string `json:"activation_token"`
 }
 
 //联系人信息
@@ -26,7 +27,7 @@ type Contact struct {
 }
 
 func contactinfo(w http.ResponseWriter, r *http.Request) {
-	if isPreflight := cors(&w, r); isPreflight == true {
+	if cors(&w, r) {
 		return
 	}
 

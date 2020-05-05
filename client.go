@@ -98,6 +98,7 @@ func writePump() {
 		connectionPoolLock.RUnlock()
 
 		db, err := getdb()
+		defer db.Close()
 		if err != nil {
 			println(err.Error())
 			return
@@ -139,7 +140,6 @@ func writePump() {
 
 			db.Create(&serverMessage)
 		}
-		db.Close()
 
 	}
 }
